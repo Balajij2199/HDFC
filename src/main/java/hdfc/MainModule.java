@@ -1,0 +1,55 @@
+/*
+ * Copyright 2010 Proofpoint, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package hdfc;
+
+import com.google.common.base.Ticker;
+import com.google.inject.Binder;
+import com.google.inject.Module;
+import com.google.inject.Provides;
+import com.google.inject.Scopes;
+
+import static com.proofpoint.configuration.ConfigBinder.bindConfig;
+import static com.proofpoint.discovery.client.DiscoveryBinder.discoveryBinder;
+import static com.proofpoint.jaxrs.JaxrsBinder.jaxrsBinder;
+import static com.proofpoint.reporting.HealthBinder.healthBinder;
+import static com.proofpoint.reporting.ReportBinder.reportBinder;
+
+public class MainModule
+        implements Module
+{
+    @Override
+    public void configure(Binder binder)
+    {
+        binder.disableCircularProxies();
+
+        binder.bind(PersonStore.class).in(Scopes.SINGLETON);
+        reportBinder(binder).export(PersonStore.class).withApplicationPrefix();
+        healthBinder(binder).export(PersonStore.class);
+
+        jaxrsBinder(binder).bind(PersonsResource.class).withApplicationPrefix();
+        jaxrsBinder(binder).bind(PersonResource.class).withApplicationPrefix();
+
+        bindConfig(binder).bind(StoreConfig.class);
+
+        discoveryBinder(binder).bindHttpAnnouncement("person");
+    }
+
+    @Provides
+    static Ticker createTicker()
+    {
+        return Ticker.systemTicker();
+    }
+}
